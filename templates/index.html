@@ -1,0 +1,149 @@
+<!-- index.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Sightings | ISS Sighting Tracker</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <!-- Leaflet (free map library) -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+</head>
+<body>
+    <header class="site-header">
+        <div class="inner">
+            <a class="brand" href="{{ url_for('index') }}">ISS <span>Sighting Tracker</span></a>
+            <nav>
+                <a href="{{ url_for('index') }}" class="active">Sightings</a>
+                <a href="{{ url_for('add') }}">Add sighting</a>
+            </nav>
+        </div>
+    </header>
+
+    <main>
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% for category, message in messages %}
+                <div class="flash {{ category }}">{{ message }}</div>
+            {% endfor %}
+        {% endwith %}
+
+        <div class="page-head">
+            <div>
+                <h1>Sightings</h1>
+                <p>Every time you checked if the ISS was overhead.</p>
+            </div>
+            <a class="button" href="{{ url_for('add') }}">Add sighting</a>
+        </div>
+
+        <div class="card iss-card">
+            <span class="pulse"></span>
+            <div>
+                <div class="label">ISS position right now</div>
+                {% if iss %}
+                    <div class="coords">{{ "%.2f"|format(iss[0]) }}°, {{ "%.2f"|format(iss[1]) }}°</div>
+                {% else %}
+                    <div class="muted">Could not reach the ISS API. Reload to try again.</div>
+                {% endif %}
+            </div>
+        </div>
+
+        {% if iss %}
+        <div class="card map-card">
+            <div id="iss-map" data-lat="{{ iss[0] }}" data-lon="{{ iss[1] }}"></div>
+        </div>
+        {% endif %}
+
+        <div class="stats">
+            <div class="stat">
+                <div class="value">{{ sightings|length }}</div>
+                <div class="label">Total sightings</div>
+            </div>
+            <div class="stat">
+                <div class="value">{{ sightings|selectattr('distance_km', 'le', 800)|list|length }}</div>
+                <div class="label">Clearly visible</div>
+            </div>
+            <div class="stat">
+                <div class="value">
+                    {% if sightings %}{{ "{:,.0f}".format(sightings|map(attribute='distance_km')|min) }} km{% else %}-{% endif %}
+                </div>
+                <div class="label">Closest distance</div>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>All sightings</h2>
+
+            {% if sightings %}
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>City</th>
+                            <th>Distance</th>
+                            <th>Visibility</th>
+                            <th>Note</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for s in sightings %}
+                        <tr>
+                            <td>{{ s.observer }}</td>
+                            <td>{{ s.place }}</td>
+                            <td>{{ "{:,.0f}".format(s.distance_km) }} km</td>
+                            <td>
+                                {% if s.distance_km <= 1500 %}
+                                    <span class="badge green">Clearly visible</span>
+                                {% elif s.distance_km <= 3000 %}
+                                    <span class="badge yellow">Partly visible</span>
+                                {% else %}
+                                    <span class="badge red">Not visible</span>
+                                {% endif %}
+                            </td>
+                            <td class="muted">{{ s.note }}</td>
+                            <td>
+                                <div class="actions">
+                                    <a class="button secondary small" href="{{ url_for('edit', sighting_id=s.id) }}">Edit</a>
+                                    <form method="post" action="{{ url_for('delete', sighting_id=s.id) }}">
+                                        <button class="button danger small" type="submit">Delete</button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+                <p class="empty">No sightings yet. Add your first one to get started.</p>
+            {% endif %}
+        </div>
+    </main>
+
+    {% if iss %}
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+        // ISS position is read from the map div's data-lat / data-lon
+        const mapDiv = document.getElementById("iss-map");
+        const issLat = parseFloat(mapDiv.dataset.lat);
+        const issLon = parseFloat(mapDiv.dataset.lon);
+
+        const map = L.map("iss-map", { scrollWheelZoom: false }).setView([issLat, issLon], 3);
+
+        L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
+            maxZoom: 8,
+            attribution: "&copy; OpenStreetMap contributors"
+        }).addTo(map);
+
+        L.circleMarker([issLat, issLon], {
+            radius: 9,
+            color: "#ffffff",
+            weight: 2,
+            fillColor: "#e5484d",
+            fillOpacity: 1
+        }).addTo(map).bindPopup("ISS is here right now").openPopup();
+    </script>
+    {% endif %}
+</body>
+</html>

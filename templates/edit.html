@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Edit sighting | ISS Sighting Tracker</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <header class="site-header">
+        <div class="inner">
+            <a class="brand" href="{{ url_for('index') }}">ISS <span>Sighting Tracker</span></a>
+            <nav>
+                <a href="{{ url_for('index') }}">Sightings</a>
+                <a href="{{ url_for('add') }}">Add sighting</a>
+            </nav>
+        </div>
+    </header>
+
+    <main>
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% for category, message in messages %}
+                <div class="flash {{ category }}">{{ message }}</div>
+            {% endfor %}
+        {% endwith %}
+
+        <div class="page-head">
+            <div>
+                <h1>Edit sighting</h1>
+                <p>If you change the city, the distance is recalculated.</p>
+            </div>
+        </div>
+
+        <div class="card">
+            <form method="post" action="{{ url_for('edit', sighting_id=sighting.id) }}">
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="observer">Your name</label>
+                        <input type="text" id="observer" name="observer" value="{{ form.observer }}" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="place">City</label>
+                        <input type="text" id="place" name="place" value="{{ form.place }}" required>
+                    </div>
+                    <div class="form-group full">
+                        <label for="note">Note (optional)</label>
+                        <input type="text" id="note" name="note" value="{{ form.note or '' }}">
+                    </div>
+                </div>
+
+                <div class="form-buttons">
+                    <button class="button" type="submit">Save changes</button>
+                    <a class="button secondary" href="{{ url_for('index') }}">Cancel</a>
+                </div>
+            </form>
+        </div>
+
+        <div class="card delete-card">
+            <p>Delete this sighting permanently.</p>
+            <form method="post" action="{{ url_for('delete', sighting_id=sighting.id) }}">
+                <button class="button danger" type="submit">Delete sighting</button>
+            </form>
+        </div>
+    </main>
+</body>
+</html>
